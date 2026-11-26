@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🏙️ Smart City Route Optimization</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏙️</text></svg>">
+    <style>
+        :root {
+            --primary: #6c5ce7;
+            --primary-light: #a29bfe;
+            --secondary: #00cec9;
+            --accent: #fd79a8;
+            --success: #00b894;
+            --warning: #fdcb6e;
+            --danger: #d63031;
+            --dark: #2d3436;
+            --darker: #1e272e;
+            --light: #dfe6e9;
+            --bg: #0a0a1a;
+            --card-bg: #12122a;
+            --card-border: #1e1e3f;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--bg);
+            color: #e0e0e0;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Background animation */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background:
+                radial-gradient(circle at 20% 50%, rgba(108, 92, 231, 0.08) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(0, 206, 201, 0.06) 0%, transparent 50%),
+                radial-gradient(circle at 50% 80%, rgba(253, 121, 168, 0.05) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, var(--darker) 0%, var(--card-bg) 100%);
+            border-bottom: 1px solid var(--card-border);
+            padding: 1.5rem 2rem;
+            text-align: center;
+        }
+        .header h1 {
+            font-size: 2rem;
+            background: linear-gradient(135deg, var(--primary-light), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.3rem;
+        }
+        .header p { color: #888; font-size: 0.95rem; }
+
+        /* Navigation Tabs */
+        .nav-tabs {
+            display: flex;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 1rem;
+            background: var(--darker);
+            border-bottom: 1px solid var(--card-border);
+            flex-wrap: wrap;
+        }
+        .nav-tab {
+            padding: 0.6rem 1.5rem;
+            border: 1px solid var(--card-border);
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: var(--card-bg);
+            color: #aaa;
+            font-size: 0.9rem;
+        }
+        .nav-tab:hover { border-color: var(--primary); color: var(--primary-light); }
+        .nav-tab.active {
+            background: linear-gradient(135deg, var(--primary), #5a3fd1);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        /* Main Content */
+        .main { max-width: 1300px; margin: 0 auto; padding: 1.5rem; }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        /* Cards */
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .card h2 {
+            font-size: 1.3rem;
+            margin-bottom: 1rem;
+            color: var(--primary-light);
+        }
+        .card h3 {
+            font-size: 1.05rem;
+            margin-bottom: 0.8rem;
+            color: var(--secondary);
+        }
+
+        /* Grid */
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+        .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; }
+        @media (max-width: 768px) {
+            .grid-2, .grid-3 { grid-template-columns: 1fr; }
+        }
+
+        /* Form Elements */
+        select, button {
+            padding: 0.7rem 1rem;
+            border-radius: 10px;
+            border: 1px solid var(--card-border);
+            font-size: 0.95rem;
+            outline: none;
+            transition: all 0.3s;
+        }
+        select {
+            background: var(--darker);
+            color: #e0e0e0;
+            width: 100%;
+            margin-bottom: 0.8rem;
+            cursor: pointer;
+        }
+        select:focus { border-color: var(--primary); }
+
+        .btn {
+            cursor: pointer;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), #5a3fd1);
+            color: white;
+            border: none;
+            width: 100%;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(108, 92, 231, 0.4);
+        }
+        .btn-secondary {
+            background: linear-gradient(135deg, var(--secondary), #00a89e);
+            color: white;
+            border: none;
+        }
+        .btn-secondary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(0, 206, 201, 0.4);
+        }
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.4rem;
+            color: #aaa;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Results */
+        .result-box {
+            background: var(--darker);
+            border-radius: 12px;
+            padding: 1.2rem;
+            margin-top: 1rem;
+            border: 1px solid var(--card-border);
+        }
+        .result-box h4 {
+            font-size: 1rem;
+            margin-bottom: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .result-box.dijkstra h4 { color: var(--success); }
+        .result-box.bellman-ford h4 { color: var(--accent); }
+
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.4rem 0;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        .metric:last-child { border-bottom: none; }
+        .metric-label { color: #888; }
+        .metric-value { font-weight: 600; color: #e0e0e0; }
+
+        .path-display {
+            margin-top: 0.8rem;
+            padding: 0.8rem;
+            background: rgba(108, 92, 231, 0.1);
+            border-radius: 8px;
+            font-size: 0.9rem;
+            line-height: 1.6;
+            word-break: break-word;
+        }
+        .path-node {
+            display: inline-block;
+            background: var(--primary);
+            color: white;
+            padding: 0.2rem 0.6rem;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            margin: 0.15rem;
+        }
+        .path-arrow { color: var(--secondary); margin: 0 0.2rem; font-weight: bold; }
+
+        .match-badge {
+            display: inline-block;
+            padding: 0.4rem 1rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-top: 1rem;
+        }
+        .match-badge.success { background: rgba(0, 184, 148, 0.2); color: var(--success); }
+        .match-badge.warning { background: rgba(214, 48, 49, 0.2); color: var(--danger); }
+
+        /* Graph Canvas */
+        .graph-container {
+            position: relative;
+            width: 100%;
+            height: 500px;
+            background: var(--darker);
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid var(--card-border);
+        }
+        #graphCanvas {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Benchmark Table */
+        .benchmark-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+        .benchmark-table th, .benchmark-table td {
+            padding: 0.8rem 1rem;
+            text-align: center;
+            border-bottom: 1px solid var(--card-border);
+        }
+        .benchmark-table th {
+            background: var(--darker);
+            color: var(--primary-light);
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.8rem;
+            letter-spacing: 0.5px;
+        }
+        .benchmark-table td { font-size: 0.9rem; }
+        .benchmark-table tr:hover td { background: rgba(108, 92, 231, 0.05); }
+        .speedup-cell {
+            font-weight: 700;
+            color: var(--warning);
+        }
+
+        /* Bar Chart */
+        .chart-container {
+            height: 320px;
+            position: relative;
+            margin-top: 1rem;
+        }
+        #benchmarkChart { width: 100%; height: 100%; }
+
+        /* Stats Cards */
+        .stat-card {
+            background: var(--darker);
+            border-radius: 12px;
+            padding: 1.2rem;
+            text-align: center;
+            border: 1px solid var(--card-border);
+        }
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary-light), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .stat-label {
+            color: #888;
+            font-size: 0.85rem;
+            margin-top: 0.3rem;
+        }
+
+        /* Distance Table */
+        .dist-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .dist-table th, .dist-table td {
+            padding: 0.6rem 0.8rem;
+            text-align: left;
+            border-bottom: 1px solid var(--card-border);
+            font-size: 0.9rem;
+        }
+        .dist-table th {
+            color: var(--primary-light);
+            font-weight: 600;
+            background: var(--darker);
+        }
+
+        /* Loading Spinner */
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255,255,255,0.2);
+            border-top-color: var(--primary-light);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .loading-overlay {
+            display: none;
+            position: absolute;
+            inset: 0;
+            background: rgba(10, 10, 26, 0.8);
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+            z-index: 10;
+        }
+        .loading-overlay.active { display: flex; }
+
+        /* Algorithm Info */
+        .algo-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        @media (max-width: 768px) { .algo-info { grid-template-columns: 1fr; } }
+
+        .algo-card {
+            padding: 1.2rem;
+            border-radius: 12px;
+            border: 1px solid var(--card-border);
+        }
+        .algo-card.dijkstra-card {
+            background: linear-gradient(135deg, rgba(0, 184, 148, 0.08), rgba(0, 184, 148, 0.02));
+            border-color: rgba(0, 184, 148, 0.2);
+        }
+        .algo-card.bf-card {
+            background: linear-gradient(135deg, rgba(253, 121, 168, 0.08), rgba(253, 121, 168, 0.02));
+            border-color: rgba(253, 121, 168, 0.2);
+        }
+        .algo-card h4 { margin-bottom: 0.6rem; }
+        .algo-card p { color: #aaa; font-size: 0.9rem; line-height: 1.6; }
+        .algo-card code {
+            background: rgba(255,255,255,0.08);
+            padding: 0.15rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            color: var(--warning);
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 2rem;
+            color: #555;
+            font-size: 0.85rem;
+            border-top: 1px solid var(--card-border);
+            margin-top: 2rem;
+        }
+        .footer a { color: var(--primary-light); text-decoration: none; }
+        .footer a:hover { text-decoration: underline; }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            padding: 1rem 1.5rem;
+            border-radius: 12px;
+            color: white;
+            font-weight: 500;
+            z-index: 1000;
+            animation: slideIn 0.3s ease;
+            display: none;
+        }
+        .toast.success { background: var(--success); }
+        .toast.error { background: var(--danger); }
+        @keyframes slideIn {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h1>🏙️ Smart City Route Optimization</h1>
+    <p>Finding shortest & most efficient routes using Dijkstra's & Bellman-Ford Algorithms</p>
+</div>
+
+<div class="nav-tabs">
+    <div class="nav-tab active" data-tab="route">🗺️ Route Finder</div>
+    <div class="nav-tab" data-tab="graph">📊 City Graph</div>
+    <div class="nav-tab" data-tab="distances">📏 All Distances</div>
+    <div class="nav-tab" data-tab="benchmark">⚡ Benchmark</div>
+    <div class="nav-tab" data-tab="about">ℹ️ About</div>
+</div>
+
+<div class="main">
+
+    <!-- ==================== ROUTE FINDER TAB ==================== -->
+    <div id="route" class="tab-content active">
+        <div class="grid-2">
+            <div class="card">
+                <h2>🗺️ Find Shortest Route</h2>
+                <div>
+                    <label>Source Location</label>
+                    <select id="source"></select>
+                </div>
+                <div>
+                    <label>Destination Location</label>
+                    <select id="destination"></select>
+                </div>
+                <button class="btn btn-primary" id="findRouteBtn" onclick="findRoute()">
+                    🔍 Find Shortest Path
+                </button>
+
+                <div id="routeResults" style="display:none;">
+                    <div class="grid-2" style="margin-top: 1rem;">
+                        <div class="result-box dijkstra">
+                            <h4>✅ Dijkstra's Algorithm</h4>
+                            <div class="metric"><span class="metric-label">Distance</span><span class="metric-value" id="dijDist">—</span></div>
+                            <div class="metric"><span class="metric-label">Exec Time</span><span class="metric-value" id="dijTime">—</span></div>
+                            <div class="metric"><span class="metric-label">Nodes Explored</span><span class="metric-value" id="dijNodes">—</span></div>
+                        </div>
+                        <div class="result-box bellman-ford">
+                            <h4>🔴 Bellman-Ford Algorithm</h4>
+                            <div class="metric"><span class="metric-label">Distance</span><span class="metric-value" id="bfDist">—</span></div>
+                            <div class="metric"><span class="metric-label">Exec Time</span><span class="metric-value" id="bfTime">—</span></div>
+                            <div class="metric"><span class="metric-label">Nodes Explored</span><span class="metric-value" id="bfNodes">—</span></div>
+                        </div>
+                    </div>
+                    <div id="pathDisplay" class="path-display" style="display:none;"></div>
+                    <div id="matchBadge"></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>📊 Route Visualization</h2>
+                <div class="graph-container" style="position:relative;">
+                    <canvas id="routeCanvas"></canvas>
+                    <div class="loading-overlay" id="routeLoading">
+                        <div class="spinner"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== CITY GRAPH TAB ==================== -->
+    <div id="graph" class="tab-content">
+        <div class="card">
+            <h2>📊 City Road Network</h2>
+            <div class="grid-3" id="graphStats" style="margin-bottom: 1rem;"></div>
+            <div class="graph-container">
+                <canvas id="graphCanvas"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== ALL DISTANCES TAB ==================== -->
+    <div id="distances" class="tab-content">
+        <div class="card">
+            <h2>📏 All Shortest Distances from Source</h2>
+            <div style="display:flex; gap:1rem; align-items:end; flex-wrap:wrap;">
+                <div style="flex:1; min-width: 200px;">
+                    <label>Source Location</label>
+                    <select id="distSource"></select>
+                </div>
+                <button class="btn btn-secondary" onclick="findAllDistances()" style="height:44px; white-space:nowrap;">
+                    📏 Calculate All Distances
+                </button>
+            </div>
+            <div id="distResults" style="display:none; margin-top:1.5rem;">
+                <div class="grid-2" style="margin-bottom:1rem;">
+                    <div class="stat-card">
+                        <div class="stat-value" id="distDijTime">—</div>
+                        <div class="stat-label">Dijkstra Time (ms)</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="distBfTime">—</div>
+                        <div class="stat-label">Bellman-Ford Time (ms)</div>
+                    </div>
+                </div>
+                <div style="overflow-x:auto;">
+                    <table class="dist-table" id="distTable">
+                        <thead>
+                            <tr>
+                                <th>Destination</th>
+                                <th>Dijkstra Distance</th>
+                                <th>Bellman-Ford Distance</th>
+                                <th>Path</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== BENCHMARK TAB ==================== -->
+    <div id="benchmark" class="tab-content">
+        <div class="card">
+            <h2>⚡ Algorithm Performance Benchmark</h2>
+            <p style="color:#888; margin-bottom:1rem;">Compare Dijkstra's and Bellman-Ford across different graph sizes</p>
+            <button class="btn btn-primary" id="benchBtn" onclick="runBenchmark()" style="max-width:300px;">
+                🚀 Run Benchmark
+            </button>
+
+            <div id="benchResults" style="display:none;">
+                <div class="chart-container">
+                    <canvas id="benchmarkChart"></canvas>
+                </div>
+                <div style="overflow-x:auto; margin-top:1.5rem;">
+                    <table class="benchmark-table" id="benchTable">
+                        <thead>
+                            <tr>
+                                <th>Vertices</th>
+                                <th>Edges</th>
+                                <th>Dijkstra (ms)</th>
+                                <th>Bellman-Ford (ms)</th>
+                                <th>Speedup</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== ABOUT TAB ==================== -->
+    <div id="about" class="tab-content">
+        <div class="card">
+            <h2>ℹ️ About This Project</h2>
+            <p style="color:#aaa; line-height:1.8; margin-bottom:1.5rem;">
+                This system solves the problem of finding the shortest and most efficient routes between
+                locations in a city. It models the city as a weighted graph — locations as vertices and roads
+                as weighted edges — and applies two classic shortest-path algorithms to find optimal routes.
+            </p>
+
+            <div class="algo-info">
+                <div class="algo-card dijkstra-card">
+                    <h4 style="color:var(--success);">✅ Dijkstra's Algorithm</h4>
+                    <p>
+                        <strong>Time:</strong> <code>O((V+E) log V)</code><br>
+                        <strong>Space:</strong> <code>O(V)</code><br><br>
+                        Uses a min-heap priority queue for efficient next-vertex selection.
+                        Guarantees optimal shortest paths for graphs with <strong>non-negative weights</strong>.
+                        Supports early exit when destination is reached.
+                    </p>
+                </div>
+                <div class="algo-card bf-card">
+                    <h4 style="color:var(--accent);">🔴 Bellman-Ford Algorithm</h4>
+                    <p>
+                        <strong>Time:</strong> <code>O(V × E)</code><br>
+                        <strong>Space:</strong> <code>O(V)</code><br><br>
+                        Relaxes all edges V−1 times. Can handle <strong>negative edge weights</strong>
+                        and detects <strong>negative-weight cycles</strong>. Slower than Dijkstra but more versatile.
+                        Uses early termination when no updates occur.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>🏗️ Tech Stack</h2>
+            <div class="grid-3">
+                <div class="stat-card">
+                    <div class="stat-value" style="font-size:1.5rem;">Python</div>
+                    <div class="stat-label">Backend / Algorithms</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" style="font-size:1.5rem;">Flask</div>
+                    <div class="stat-label">Web Framework</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" style="font-size:1.5rem;">Canvas API</div>
+                    <div class="stat-label">Graph Visualization</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="footer">
+    <p>Smart City Route Optimization System &bull;
+       <a href="https://github.com/siya809026-dot/smart-city-route-optimization" target="_blank">GitHub Repository</a>
+    </p>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ===== Globals =====
+let graphData = null;
+let currentPath = [];
+
+// ===== Tab Navigation =====
+document.querySelectorAll('.nav-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+        document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById(tab.dataset.tab).classList.add('active');
+        if (tab.dataset.tab === 'graph' && graphData) drawGraph('graphCanvas', graphData);
+    });
+});
+
+// ===== Init =====
+async function init() {
+    try {
+        const [graphRes, locRes] = await Promise.all([
+            fetch('/api/graph'), fetch('/api/locations')
+        ]);
+        graphData = await graphRes.json();
+        const locations = await locRes.json();
+
+        populateSelects(locations);
+        showGraphStats();
+        drawGraph('routeCanvas', graphData);
+    } catch (err) {
+        showToast('Failed to load data: ' + err.message, 'error');
+    }
+}
+
+function populateSelects(locations) {
+    ['source', 'destination', 'distSource'].forEach(id => {
+        const sel = document.getElementById(id);
+        sel.innerHTML = '';
+        locations.forEach((loc, i) => {
+            const opt = document.createElement('option');
+            opt.value = loc.id;
+            opt.textContent = loc.label;
+            if (id === 'source' && i === 0) opt.selected = true;
+            if (id === 'destination' && loc.id === 'Airport') opt.selected = true;
+            if (id === 'distSource' && i === 0) opt.selected = true;
+            sel.appendChild(opt);
+        });
+    });
+}
+
+function showGraphStats() {
+    if (!graphData) return;
+    const el = document.getElementById('graphStats');
+    const totalWeight = graphData.edges.reduce((s, e) => s + e.weight, 0);
+    el.innerHTML = `
+        <div class="stat-card"><div class="stat-value">${graphData.nodes.length}</div><div class="stat-label">Locations</div></div>
+        <div class="stat-card"><div class="stat-value">${graphData.edges.length}</div><div class="stat-label">Roads</div></div>
+        <div class="stat-card"><div class="stat-value">${totalWeight.toFixed(1)}</div><div class="stat-label">Total Distance (km)</div></div>
+    `;
+}
+
+// ===== Graph Drawing =====
+function drawGraph(canvasId, data, highlightPath = []) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const rect = canvas.parentElement.getBoundingClientRect();
+    canvas.width = rect.width;
+    canvas.height = rect.height;
+    const W = canvas.width, H = canvas.height;
+
+    ctx.clearRect(0, 0, W, H);
+
+    // Calculate positions
+    const lats = data.nodes.map(n => n.lat);
+    const lons = data.nodes.map(n => n.lon);
+    const minLat = Math.min(...lats), maxLat = Math.max(...lats);
+    const minLon = Math.min(...lons), maxLon = Math.max(...lons);
+    const pad = 60;
+
+    const positions = {};
+    data.nodes.forEach(n => {
+        positions[n.id] = {
+            x: pad + ((n.lon - minLon) / (maxLon - minLon + 0.001)) * (W - 2 * pad),
+            y: H - pad - ((n.lat - minLat) / (maxLat - minLat + 0.001)) * (H - 2 * pad),
+        };
+    });
+
+    // Highlight edges set
+    const hlEdges = new Set();
+    for (let i = 0; i < highlightPath.length - 1; i++) {
+        hlEdges.add(highlightPath[i] + '->' + highlightPath[i+1]);
+        hlEdges.add(highlightPath[i+1] + '->' + highlightPath[i]);
+    }
+
+    // Draw edges
+    data.edges.forEach(e => {
+        const p1 = positions[e.source], p2 = positions[e.target];
+        if (!p1 || !p2) return;
+        const isHL = hlEdges.has(e.source + '->' + e.target) || hlEdges.has(e.target + '->' + e.source);
+        ctx.beginPath();
+        ctx.moveTo(p1.x, p1.y);
+        ctx.lineTo(p2.x, p2.y);
+        ctx.strokeStyle = isHL ? '#e74c3c' : 'rgba(100,100,150,0.3)';
+        ctx.lineWidth = isHL ? 3.5 : 1.2;
+        ctx.stroke();
+
+        // Weight label
+        const mx = (p1.x + p2.x) / 2, my = (p1.y + p2.y) / 2;
+        ctx.font = '10px sans-serif';
+        ctx.fillStyle = isHL ? '#e74c3c' : '#666';
+        ctx.textAlign = 'center';
+        ctx.fillText(e.weight.toFixed(1), mx, my - 4);
+    });
+
+    // Draw nodes
+    data.nodes.forEach(n => {
+        const p = positions[n.id];
+        const isOnPath = highlightPath.includes(n.id);
+        const isEndpoint = highlightPath.length > 0 && (n.id === highlightPath[0] || n.id === highlightPath[highlightPath.length - 1]);
+
+        ctx.beginPath();
+        const r = isEndpoint ? 10 : (isOnPath ? 8 : 6);
+        ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
+        ctx.fillStyle = isEndpoint ? '#e74c3c' : (isOnPath ? '#f39c12' : '#6c5ce7');
+        ctx.fill();
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        ctx.font = isEndpoint ? 'bold 11px sans-serif' : '10px sans-serif';
+        ctx.fillStyle = isOnPath ? '#fff' : '#aaa';
+        ctx.textAlign = 'center';
+        ctx.fillText(n.label, p.x, p.y - r - 6);
+    });
+}
+
+// ===== Route Finding =====
+async function findRoute() {
+    const source = document.getElementById('source').value;
+    const dest = document.getElementById('destination').value;
+    const btn = document.getElementById('findRouteBtn');
+
+    if (source === dest) { showToast('Source and destination must be different', 'error'); return; }
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Finding...';
+
+    try {
+        const res = await fetch('/api/shortest-path', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({source, destination: dest}),
+        });
+        const data = await res.json();
+        if (!res.ok) { showToast(data.error, 'error'); return; }
+
+        document.getElementById('routeResults').style.display = 'block';
+
+        // Dijkstra results
+        document.getElementById('dijDist').textContent = data.dijkstra.found ? data.dijkstra.distance.toFixed(2) + ' km' : 'No path';
+        document.getElementById('dijTime').textContent = data.dijkstra.time_ms + ' ms';
+        document.getElementById('dijNodes').textContent = data.dijkstra.vertices_explored;
+
+        // Bellman-Ford results
+        document.getElementById('bfDist').textContent = data.bellman_ford.found ? data.bellman_ford.distance.toFixed(2) + ' km' : 'No path';
+        document.getElementById('bfTime').textContent = data.bellman_ford.time_ms + ' ms';
+        document.getElementById('bfNodes').textContent = data.bellman_ford.vertices_explored;
+
+        // Path display
+        const pathEl = document.getElementById('pathDisplay');
+        if (data.dijkstra.found) {
+            pathEl.style.display = 'block';
+            pathEl.innerHTML = '<strong>Shortest Path:</strong><br>' +
+                data.dijkstra.path.map(n => `<span class="path-node">${n.replace(/_/g, ' ')}</span>`)
+                .join('<span class="path-arrow">→</span>');
+            currentPath = data.dijkstra.path;
+        } else {
+            pathEl.style.display = 'none';
+            currentPath = [];
+        }
+
+        // Match badge
+        const badge = document.getElementById('matchBadge');
+        if (data.match) {
+            badge.innerHTML = `<span class="match-badge success">✅ Both algorithms agree! Speedup: ${data.speedup || '—'}×</span>`;
+        } else {
+            badge.innerHTML = '<span class="match-badge warning">⚠️ Results differ</span>';
+        }
+
+        // Redraw graph with path
+        drawGraph('routeCanvas', graphData, currentPath);
+        showToast('Route found!', 'success');
+    } catch (err) {
+        showToast('Error: ' + err.message, 'error');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '🔍 Find Shortest Path';
+    }
+}
+
+// ===== All Distances =====
+async function findAllDistances() {
+    const source = document.getElementById('distSource').value;
+
+    try {
+        const res = await fetch('/api/all-distances', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({source}),
+        });
+        const data = await res.json();
+
+        document.getElementById('distResults').style.display = 'block';
+        document.getElementById('distDijTime').textContent = data.dijkstra_time_ms;
+        document.getElementById('distBfTime').textContent = data.bellman_ford_time_ms;
+
+        const tbody = document.querySelector('#distTable tbody');
+        tbody.innerHTML = data.distances.map(d => `
+            <tr>
+                <td>${d.label}</td>
+                <td>${d.dijkstra_dist !== null ? d.dijkstra_dist + ' km' : '∞'}</td>
+                <td>${d.bellman_ford_dist !== null ? d.bellman_ford_dist + ' km' : '∞'}</td>
+                <td style="font-size:0.8rem; color:#888;">${d.path.slice(-3).join(' → ')}</td>
+            </tr>
+        `).join('');
+    } catch (err) {
+        showToast('Error: ' + err.message, 'error');
+    }
+}
+
+// ===== Benchmark =====
+async function runBenchmark() {
+    const btn = document.getElementById('benchBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Running benchmarks...';
+
+    try {
+        const res = await fetch('/api/benchmark', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({num_runs: 3}),
+        });
+        const data = await res.json();
+
+        document.getElementById('benchResults').style.display = 'block';
+
+        // Table
+        const tbody = document.querySelector('#benchTable tbody');
+        tbody.innerHTML = data.results.map(r => `
+            <tr>
+                <td>${r.vertices}</td>
+                <td>${r.edges}</td>
+                <td style="color:var(--success);">${r.dijkstra_ms.toFixed(4)}</td>
+                <td style="color:var(--accent);">${r.bellman_ford_ms.toFixed(4)}</td>
+                <td class="speedup-cell">${r.speedup}×</td>
+            </tr>
+        `).join('');
+
+        // Bar chart
+        drawBenchChart(data.results);
+        showToast('Benchmark complete!', 'success');
+    } catch (err) {
+        showToast('Error: ' + err.message, 'error');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '🚀 Run Benchmark';
+    }
+}
+
+function drawBenchChart(results) {
+    const canvas = document.getElementById('benchmarkChart');
+    const ctx = canvas.getContext('2d');
+    const rect = canvas.parentElement.getBoundingClientRect();
+    canvas.width = rect.width;
+    canvas.height = 300;
+    const W = canvas.width, H = canvas.height;
+    const pad = { top: 30, right: 30, bottom: 50, left: 70 };
+    const chartW = W - pad.left - pad.right;
+    const chartH = H - pad.top - pad.bottom;
+
+    ctx.clearRect(0, 0, W, H);
+
+    const maxTime = Math.max(...results.map(r => r.bellman_ford_ms)) * 1.15;
+    const n = results.length;
+    const groupW = chartW / n;
+    const barW = groupW * 0.3;
+
+    // Grid
+    ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+    for (let i = 0; i <= 5; i++) {
+        const y = pad.top + (chartH / 5) * i;
+        ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(W - pad.right, y); ctx.stroke();
+        ctx.fillStyle = '#666'; ctx.font = '11px sans-serif'; ctx.textAlign = 'right';
+        ctx.fillText((maxTime * (1 - i / 5)).toFixed(2), pad.left - 8, y + 4);
+    }
+
+    results.forEach((r, i) => {
+        const cx = pad.left + groupW * i + groupW / 2;
+
+        // Dijkstra bar
+        const dH = (r.dijkstra_ms / maxTime) * chartH;
+        ctx.fillStyle = '#00b894';
+        ctx.fillRect(cx - barW - 2, pad.top + chartH - dH, barW, dH);
+
+        // BF bar
+        const bH = (r.bellman_ford_ms / maxTime) * chartH;
+        ctx.fillStyle = '#fd79a8';
+        ctx.fillRect(cx + 2, pad.top + chartH - bH, barW, bH);
+
+        // Label
+        ctx.fillStyle = '#aaa'; ctx.font = '10px sans-serif'; ctx.textAlign = 'center';
+        ctx.fillText(`V=${r.vertices}`, cx, H - pad.bottom + 15);
+        ctx.fillText(`E=${r.edges}`, cx, H - pad.bottom + 28);
+
+        // Speedup label
+        ctx.fillStyle = '#fdcb6e'; ctx.font = 'bold 11px sans-serif';
+        ctx.fillText(`${r.speedup}×`, cx, pad.top + chartH - Math.max(dH, bH) - 8);
+    });
+
+    // Legend
+    ctx.fillStyle = '#00b894'; ctx.fillRect(W - 180, 10, 12, 12);
+    ctx.fillStyle = '#aaa'; ctx.font = '11px sans-serif'; ctx.textAlign = 'left';
+    ctx.fillText('Dijkstra', W - 162, 20);
+    ctx.fillStyle = '#fd79a8'; ctx.fillRect(W - 180, 28, 12, 12);
+    ctx.fillStyle = '#aaa';
+    ctx.fillText('Bellman-Ford', W - 162, 38);
+}
+
+// ===== Utils =====
+function showToast(msg, type = 'success') {
+    const toast = document.getElementById('toast');
+    toast.textContent = msg;
+    toast.className = 'toast ' + type;
+    toast.style.display = 'block';
+    setTimeout(() => { toast.style.display = 'none'; }, 3000);
+}
+
+// ===== Start =====
+init();
+</script>
+
+</body>
+</html>
